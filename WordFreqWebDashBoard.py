@@ -1,35 +1,70 @@
-from mylib import myTextAnalyzer as ta
+import streamlit as st
+import pandas as pd
+import textMiningModule as tmm
+import visualizerModule as vsm
 
-# 데이터 로딩
-data_filename = ".\data\daum_movie_review.csv"
-column ="review"
+st.set_page_config(
+    page_title="단어 빈도수 시각화",
+    page_icon="👀"
+)
 
-corpus = ta.load_corpus_from_csv(data_filename, column)
-print(corpus[:5])
+# 한글 폰트
+vsm.register_korean_font()
 
-# 토큰화 -> 빈도수 추출
+# sidebar
+with st.sidebar:
+    data_file = st.file_uploader("파일 선택", type=['csv'])
+    column_name = st.text_input("데이터가 있는 컬럼명", value="review")
 
-from konlpy.tag import Okt
+    if st.button("데이터 미리보기"):
+        if data_file:
+            data_df = pd.read_csv(data_file)
+            vsm.show_data_dialog(data_df)
+        else:
+            st.warning("파일을 먼저 업로드해주세요.")
+    
+    st.write("설정")
+    with st.form("form"):
+        freq = st.checkbox("빈도수 그래프", value=True)
+        num_freq_words = st.slider("단어 수", 10, 50, 20, 1, key="freq_slider")
 
-tokenizer = Okt().pos
-my_tags = ['Noun', 'Verb', 'Adjective']
-my_stopwords = ['돈', '나', '할', '헐', '사람', '진짜', '보고', '마지막', '시간', '그냥', '정도','영화','생각','마동석','윤계상','내용','연기','감동','정말','광주','마블','감독']
+        wc = st.checkbox('워드클라우드')
+        num_wc_words = st.slider('단어 수', 20, 500, 50, 10, key="wc_slider")
 
-tokens = ta.tokenize_korean_corpus(corpus[:10], tokenizer, my_tags, my_stopwords)
-print(tokens[:10])
+        submitted = st.form_submit_button("분석 시작")
 
-counter = ta.analyze_word_freq(tokens)
-print(list(counter.items())[:10])
+# 메인 화면
 
-# 시각화
+st.title("단어 빈도수 시각화")
+status = st.info('분석할 파일을 업로드하고, 시각화 수단을 선택한 후 "분석 시작" 버튼을 클릭하세요.')
 
-# 수평 막대 그래프
-num_words = 20
-title = "영화 리뷰"
-xlabel = "키워드"
-ylabel =  "빈도수"
-font_path = "c:/Windows/fonts/malgun.ttf"
-ta.visualize_barhgraph(counter, num_words, title, xlabel, ylabel, font_path)
+if submitted:
+    if not data_file:
+        st.error("분석할 데이터 파일을 업로드 한 후 분석 시작을 눌러주세요.")
+        st.stop()
+    
+    if not freq and not wc:
+        st.warning("빈도수 그래프 또는 워드클라우드 중 하나 이상 선택해주세요.")
+        st.stop()
 
-# 워드클라우드
-ta.visualize_wordcloud(counter, num_words, font_path)
+    status.info("데이터 분석 중 ...")
+
+    corpus, data_df = tmm.load_corpus_from_csv(data_file, column_name)
+    
+    if not corpus:
+        st.error(f"컬럼명 '{column_name}'을 찾을 수 없습니다. 다시 확인 해주세요.")
+        st.stop()
+
+    # 빈도수 분석
+    counter = tmm.analyze_word_freq(corpus)
+
+    status.success(f"분석 완료 ! ({len(corpus):,}개의 리뷰, {sum(counter.values()):,}개의 단어)")
+
+
+    if freq:
+        buf = vsm.draw_bar_chart(counter, num_freq_words)
+        st.download_button("그래프 저장", buf.getvalue(), "bar_chart.png", "image/png")
+
+    if wc:
+        buf = vsm.draw_wordcloud(counter, num_wc_words)
+        st.download_button("워드클라우드 저장", buf.getvalue(), "wordcloud.png", "image/png")
