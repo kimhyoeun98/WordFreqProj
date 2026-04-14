@@ -46,7 +46,7 @@ def draw_bar_chart(counter, num_words):
     ax.set_title(f'상위 {num_words}개 단어 빈도수')
     st.pyplot(fig)
 
-    # ✅ buf만 반환
+    # buf만 반환
     import io
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
@@ -63,7 +63,7 @@ def draw_wordcloud(counter, num_words):
         ax.axis('off')
         st.pyplot(fig)
 
-        # ✅ buf만 반환
+        # buf만 반환
         import io
         buf = io.BytesIO()
         fig.savefig(buf, format='png', bbox_inches='tight')
