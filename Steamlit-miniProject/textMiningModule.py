@@ -15,7 +15,7 @@ def load_corpus_from_csv(filename, column):
             data_df.dropna(subset=[column], inplace=True)
         corpus = list(data_df[column])
     
-    return corpus, data_df  # ✅ data_df 같이 반환
+    return corpus, data_df  # data_df 같이 반환
 
 
 def tokenize_corpus(corpus):
